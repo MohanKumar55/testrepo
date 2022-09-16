@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="9b4710de-2e81-4d35-b5ab-0951fe4cf6eb" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="5f0b9471-c16f-4aab-bb43-c7382f2bc6d5" >
+		<http:request-connection host="localhost" port="8082" />
+	</http:request-config>
+	<flow name="currencyconversionFlow" doc:id="2681d59c-2e4b-47f4-8813-15406c7a2d00" >
+		<http:listener doc:name="Listener" doc:id="e9edba1a-ad2e-43e8-be3e-7d8b0a6d2621" config-ref="HTTP_Listener_config" path="/currency"/>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="e4436187-5e8c-46bb-abc7-d1d4775866c4" variableName="currency"/>
+		<http:request method="GET" doc:name="Request" doc:id="6acc561a-20c6-4b85-b3d4-cb6d37b7e87c" url="https://currency-exchange.p.rapidapi.com/exchange" config-ref="HTTP_Request_configuration">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	'X-RapidAPI-Host' : 'currency-exchange.p.rapidapi.com',
+	'X-RapidAPI-Key' : 'fc68cc7f30mshae5a7af91afcb66p1f44c0jsn652f06dd9372'
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	from : vars.currency.ConversionFrom,
+	to : vars.currency.ConversionTo
+}]]]></http:query-params>
+		</http:request>
+		<choice doc:name="Choice" doc:id="36120495-800c-48f1-8734-409485dc4a4b" >
+			<when expression="#[payload as Number !=0]">
+				<ee:transform doc:name="Transform Message" doc:id="5eee071e-f02f-4bff-a87f-70e45e5c24cd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Total": payload * vars.currency.n
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="15deda62-d1ee-42f6-a19a-38f28fb9fa83" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+"Please Enter Valid Country Codes for Conversion"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
