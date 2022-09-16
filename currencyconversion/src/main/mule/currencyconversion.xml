@@ -52,5 +52,6 @@ output application/java
 				</ee:transform>
 			</otherwise>
 		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="f77f7384-9327-48f4-ae1d-bc79e10c86ae" message='#["Flow completed"]'/>
 	</flow>
 </mule>
