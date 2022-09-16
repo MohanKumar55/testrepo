@@ -1,0 +1,9 @@
+%dw 2.0
+
+type auto_6ee3afe1_c883_4d0b_80c1_8e515d9b9ff8_Input_Payload = {|
+  name: Any, 
+  age: Any, 
+  gender: String | Null, 
+  empid: String | Null
+|}
+
