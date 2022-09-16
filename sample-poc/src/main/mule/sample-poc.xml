@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="be557f62-aaa8-4189-ba11-b13236f6954c" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<email:smtp-config name="smtp">
+    <email:smtp-connection host="smtp.gmail.com" port="995" user="vootlanavya05@gmail.com" password="Daddy@143">
+			<email:properties >
+				<email:property key="mail.smtp.starttls.enable" value="true" />
+			</email:properties>
+		</email:smtp-connection>
+</email:smtp-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="4cf293a0-2afa-4304-9779-fcbe51bc27bc" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="1234567" database="public" />
+	</db:config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="92f9e944-8b2a-4037-a0b7-49e9f0b9dfc9">
+		<vm:queues >
+			<vm:queue queueName="orderqueue" />
+		</vm:queues>
+	</vm:config>
+	<flow name="sample-poc" doc:id="280bdc91-3332-4a7e-8ae3-7053a21551d4" >
+		<http:listener doc:name="Listener" doc:id="b9931754-f71a-4541-959b-ba6b1869e643" config-ref="HTTP_Listener_config" path="/path" outputMimeType="application/json"/>
+		<db:select doc:name="Select" doc:id="2f5201f6-7151-4036-870a-f718e293d825" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM smartphones where MODEL=:MODEL]]></db:sql>
+			<db:input-parameters ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	'MODEL': attributes.queryParams.model
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="4d2f24d0-a848-4f91-9fce-4b45d479756c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="5cd77926-1281-40f3-9f2b-0caea26d2cb7">
+					<when expression="#[payload.STOCK != null]">
+				<flow-ref doc:name="Flow Reference" doc:id="b917615b-e0f2-4791-a665-5ae08ed1e6c8" name="sample-poc-bill"/>
+					</when>
+			<otherwise>
+						<raise-error doc:name="Raise error" doc:id="282dc121-bc0b-4c59-91cd-e216c2382250" type="ANY" description='"The product which you are looking is currently out of stock"' />
+					</otherwise>
+				</choice>
+		<async doc:name="Async" doc:id="f092c1bf-923f-4de1-990e-6f0f1f1328e8">
+			<flow-ref doc:name="Flow Reference" doc:id="0de86344-520f-4499-a068-3bcf3944aa38" name="sample-poc-async" targetValue="#[vars.bill]"/>
+				</async>
+		<flow-ref doc:name="updated the order details to target system" doc:id="f206dc29-9e8c-47b2-a719-cc05612053a7" name="sample-pocSub_Flow"/>
+		<ee:transform doc:name="Transform Message" doc:id="cc10c39d-385e-4788-b181-0d57b74e2657">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.bill]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+	</flow>
+	<sub-flow name="sample-poc-async" doc:id="6ee3afe1-c883-4d0b-80c1-8e515d9b9ff8" >
+		<email:send doc:name="Send" doc:id="40c25263-2d43-4163-82f6-63c1266f7651" config-ref="smtp">
+			<email:to-addresses >
+				<email:to-address value="vootlanavya05@gmail.com" />
+			</email:to-addresses>
+			<email:body >
+				<email:content ><![CDATA[#["Mail Sent"]]]></email:content>
+			</email:body>
+		</email:send>
+		<logger level="INFO" doc:name="Logger" doc:id="68f3ef99-9564-4768-a58a-dc30c47bcb1c" />
+	</sub-flow>
+	<sub-flow name="sample-pocSub_Flow" doc:id="cd70b1f6-4d82-4509-a309-b2e6d2d78c4d" >
+		<scatter-gather doc:name="Scatter-Gather" doc:id="e1e72136-5d1c-45e8-a108-a853eb544d3a" >
+			<route >
+				<vm:publish doc:name="Publish to order queue" doc:id="2e4d159a-319e-48d1-9b6b-c9db90a21d74" config-ref="VM_Config" queueName="orderqueue">
+					<vm:content ><![CDATA[#[vars.bill]]]></vm:content>
+				</vm:publish>
+			</route>
+			<route >
+				<logger level="INFO" doc:name="Logger" doc:id="8ecdfa1a-8c9d-4022-9477-1db140e90baa" message="order details inserted successfully"/>
+				<db:insert doc:name="Insert" doc:id="6717f1c8-ce6c-41a7-b469-68d2f63b5e49" config-ref="Database_Config">
+					<db:sql ><![CDATA[INSERT INTO ORDERDETAILS (ORDERID,ORDERDATE,PRODUCTSKU )
+VALUES (:ORDERID,:ORDERDATE,:PRODUCTSKU);]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+    'ORDERID': vars.bill.orderid,
+    'ORDERDATE': vars.bill.orderdate,
+    'PRODUCTSKU': vars.bill.productsku
+}]]]></db:input-parameters>
+				</db:insert>
+			</route>
+		</scatter-gather>
+	</sub-flow>
+	<sub-flow name="sample-poc-bill" doc:id="e25b0011-fcf2-4392-adae-79456ee8878a" >
+		<ee:transform doc:name="Transform Message" doc:id="74595510-033e-46fa-bc9f-277456a04a69" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="bill" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"suppliername": "cloudtail india Ltd",
+	"suppliergstin": "29AAACH3403R1ZB",
+	"supplieraddress": "2/32,Karapakkam,chennai,Tamilnadu,60097",
+	"orderid": "OD123456",
+	"orderdate": "24-08-2022",
+	"invoicedate": "24-08-2022",
+	"customeraddress": "V Navyasree , Pudipatla village,tirupathi rural mandal,chittoor Andhra pradesh,517505",
+	"productsku": "2647"
+	
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+</mule>
