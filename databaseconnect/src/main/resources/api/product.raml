@@ -1,0 +1,22 @@
+#%RAML 1.0 DATATYPE
+properties:
+  productId: 
+    type: number
+    required: false
+  productName:
+    type: string
+    required: true
+  price:
+    type: number
+    required: true
+  mfgDate:
+    type: string
+    required: false
+  brand:
+    type: string
+    required: false
+  emailAddress:
+    type: string
+    required: false
+    pattern: ^.+@.+\..+$
+  

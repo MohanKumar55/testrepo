@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="getwithoutproductidsampleRESTApi-test-suite.xml" />
+	<munit:test name="getwithoutproductid-test-suite-get:\product:sampleRESTApi-configTest" doc:id="704a76c3-b717-4cf3-962b-7caadae5a74b" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="714ba852-054d-440b-a3c2-4ea0e8e8ed67" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b6133297-db96-4a17-9828-cc4e2798e991" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value='#[&#10;{&#10;    "brand": "Apple",&#10;    "productId": 5,&#10;    "price": 77000,&#10;    "emailAddress": "def@gmail.com",&#10;    "mfgdate": "2021-01-18T00:00:00",&#10;    "productName": "Apple"&#10;}&#10;&#10;]' mediaType="application/java" />
+					<munit-tools:variables >
+						<munit-tools:variable key="httpStatus" value="#[200]" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to get:\product:sampleRESTApi-config" doc:id="c595eaf8-ab30-47bf-86a7-e57087cede92" name="get:\product:sampleRESTApi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="31de0d35-a542-43d0-b564-509622be340a" expression="#[output application/java --- (write(payload, 'application/json') as String)]" is="#[MunitTools::equalTo(MunitTools::getResourceAsStream('getresponse.json') replace '\r' with '')]"/>
+			<munit-tools:assert-that doc:name="Assert that" doc:id="079b5b1e-23da-46d7-a010-9f194318d0f4" expression="#[200]" is="#[MunitTools::equalTo(vars.httpStatus)]"/>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="getwithoutproductid-test-suiteTest" doc:id="e31767b4-d646-4d70-88ec-f26e7a016ced" expectedErrorType="DB:CONNECTIVITY">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when" doc:id="3f28a49c-7873-4c47-ab9a-f26d4a1cd8fe" processor="db:select">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="b6133297-db96-4a17-9828-cc4e2798e991" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="DB:CONNECTIVITY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow Reference" doc:id="15d81b8d-558a-454e-8f1e-3912188c1fe7" name="get:\product:sampleRESTApi-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Assert that" doc:id="f25da023-0daf-43bc-ab34-7a979ee5bf10" expression="#[500]" is="#[MunitTools::equalTo(vars.httpStatus)]"/>
+		</munit:validation>
+	</munit:test>
+
+
+</mule>
